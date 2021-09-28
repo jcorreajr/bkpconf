@@ -5,11 +5,12 @@
 - Conta com acesso <sem senha> por ssh no servidor de origem dos arquivos
 -- Usar por exemplo o ssh-copy-id para isso
 
-* Bugs*
+* Bugs *
 
-* FALTA desenvolver*
+* FALTA desenvolver *
 - opção de porta SSH no .conf
 - tratamento de erro de conexão com timeout partindo para próximo host
+- Alguma segurança para não subscrever a origem do backup caso inverta na configuração
 
 
 -------------------  Funcionalidades
@@ -46,14 +47,17 @@ def bkprsync(fhostbkp, forigembkp, fdestinobkp):
     # Verifica se existe pasta de destino
     try:
         os.makedirs(fdestinobkp)
-        print("Diretório ", fdestinobkp, " criado ")
+        if interativo in ['s', 'S']:
+            print("Diretório ", fdestinobkp, " criado ")
     except FileExistsError:
-        print()
+        if interativo in ['s', 'S']:
+            print()
 
     # Montagem do comando de execução
     forigembkplista = 'root@' + fhostbkp + ':' + forigembkp
     cmd = shlex.split('rsync -av --delete -e "ssh -p 2225"' + ' ' + forigembkplista + ' ' + fdestinobkp)
-    print(f'...Debug (Comando):.. \n{cmd}')
+    if interativo in ['s', 'S']:
+        print(f'...Debug (Comando):.. \n{cmd}')
     retorno = subprocess.run(cmd, capture_output=True)
     dataexecucao = datetime.datetime.now().isoformat()
     if retorno.returncode == 0:
@@ -87,17 +91,21 @@ def errolog(fhostbkp, ferrobkp, fdataexecucao):
 def verifica(fhostbkp, forigembkp, fdestinobkp):
     ''' Verifica se os dados estão OK para iniciar o backup '''
     if fhostbkp and forigembkp and fdestinobkp != '':
-        print('')
-        print(f'Host a ser backupeado:.. {fhostbkp}')
-        print(f'Pasta(s) de origem de backup:.. ')
-        print(f'-'*20)
-        for v in forigembkp:
-            print(f'→ {v}')
-        print(f'-'*20)
-        print(f'Pasta de destino de backup:.. {fdestinobkp}')
-        confirma = input('Fazer backup? (S/N):.. ')
-        confirma = confirma.upper()
-        return confirma
+        if interativo in ['S', 's']:
+            print('')
+            print(f'Host a ser backupeado:.. {fhostbkp}')
+            print(f'Pasta(s) de origem de backup:.. ')
+            print(f'-'*20)
+            for v in forigembkp:
+                print(f'→ {v}')
+            print(f'-'*20)
+            print(f'Pasta de destino de backup:.. {fdestinobkp}')
+            confirma = input('Fazer backup? (S/N):.. ')
+            confirma = confirma.upper()
+            return confirma
+        else:
+            confirma = 'S'
+            return confirma
 
 
 def carregajson():
@@ -123,7 +131,8 @@ def executa():
         verificacao = verifica(hostbkp, origembkp, destinobkp)
         #  .. Se verifica OK faz bkprsync
         if verificacao == 'S':
-            print(f'\n... Executando bkp de {hostbkp}, origem: {origembkp}, destino {destinobkp}')
+            if interativo in ['s', 'S']:
+                print(f'\n... Executando bkp de {hostbkp}, origem: {origembkp}, destino {destinobkp}')
 
             # Faz for e executa o comando rsync para cada origem analisando saida de cada rsync
             for vorigembkp in origembkp:
@@ -137,7 +146,8 @@ def executa():
             manterhistorico(hostbkp)
 
         else:
-            print('.. saindo ..')
+            if interativo in ['s', 'S']:
+                print('.. saindo ..')
 
 
 def fazertarfile(output_filename, source_dir):
@@ -159,10 +169,12 @@ def manterhistorico(fhostbkp):
         if past_time > timestamp:
             if fhostbkp + '_' in str(path) and '.tar.gz' in str(path):
                 try:
-                    print(f'arquivo apagado {path}')
+                    if interativo in ['s', 'S']:
+                        print(f'arquivo apagado {path}')
                     os.remove(path)
                 except OSError as e:
-                    print(f"Error:{e.strerror}")
+                    if interativo in ['s', 'S']:
+                        print(f"Error:{e.strerror}")
                     errolog(fhostbkp, e.strerror, datetime.datetime.now().isoformat())
 
 
