@@ -1,30 +1,6 @@
 # TODO: Script para backup de configuração dos servidores Linux
 '''
-* Requisitos *
-- Programas: rsync (armazenador e alvo), tar
-- Conta com acesso <sem senha> por ssh no servidor de origem dos arquivos
--- Usar por exemplo o ssh-copy-id para isso
-
-* Bugs *
-
-* FALTA desenvolver *
-- opção de porta SSH no .conf
-- tratamento de erro de conexão com timeout partindo para próximo host
-- Alguma segurança para não subscrever a origem do backup caso inverta na configuração
-
-
--------------------  Funcionalidades
-. Lê arquivo .json com nome do servidor + ip para conexão + origem do bkp1 + origem do bkp*
-
-. Faz cópia dos arquivos para destino backup
-
-. guarda log detalhado em caso de erros
-
-. guarda data_hora + status do backup se ok ou não em arquivo .log
-
-. Após backup de todos os servidores:
-. Faz compactação individual por pasta
-. Mantem arquivos com 'x' dias
+Script para execução de backup remoto
 
 '''
 
@@ -55,10 +31,18 @@ def bkprsync(fhostbkp, forigembkp, fdestinobkp):
 
     # Montagem do comando de execução
     forigembkplista = 'root@' + fhostbkp + ':' + forigembkp
-    cmd = shlex.split('rsync -av --delete -e "ssh -p 2225"' + ' ' + forigembkplista + ' ' + fdestinobkp)
+    comandossh = 'ssh -p' + ' ' + portassh + ' ' + '-o PasswordAuthentication=no'
+    cmd = shlex.split('rsync -av --delete -e' + ' ' + '"' + comandossh + '"' + ' ' + forigembkplista + ' ' + fdestinobkp)
     if interativo in ['s', 'S']:
         print(f'...Debug (Comando):.. \n{cmd}')
-    retorno = subprocess.run(cmd, capture_output=True)
+
+    # Faz um teste de conexão SSH com as variáveis do momento. Se OK, então executa sub-processo
+    try:
+        retorno = subprocess.run(cmd, capture_output=True)
+    except:
+        retorno = 'Erro de execucao-host-errado'
+        pass
+
     dataexecucao = datetime.datetime.now().isoformat()
     if retorno.returncode == 0:
         statusexec = 'OK'
