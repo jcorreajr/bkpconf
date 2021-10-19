@@ -17,6 +17,7 @@
 - Após backup de todos os servidores:
   - Faz compactação individual por pasta
   - Mantem arquivos com 'x' dias
+- Em caso de erro na execução de backup ele envia um email informando
 
 ## Configurações:
 - Lista de servidores e pastas à serem backupeadas no arquivo "servidores.json" em formato json

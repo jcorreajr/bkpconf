@@ -1,0 +1,13 @@
+{
+
+  "server1": {
+    "origembkp": ["/etc", "/usr/local"],
+    "destinobkp": "/dir/destino/bkp"
+  },
+
+   "server2": {
+    "origembkp": ["/etc/dhcp"],
+    "destinobkp": "/dir/destino/bkp"
+  }
+
+}
