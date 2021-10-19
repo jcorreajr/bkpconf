@@ -1,7 +1,9 @@
 # Script para execução de backup: 
 - Deve ser executado no servidor de armazenamento de backup
 - Utiliza rsync para fazer a cópia dos dados nos servidores de origem, salvando na pasta de destino
-
+```bash
+# python3 main.py
+```
 ## Requisitos:
 - Programas: rsync (armazenador e alvo), tar
 - Conta com acesso <sem senha> por ssh no servidor de origem dos arquivos
@@ -20,4 +22,18 @@
 - Lista de servidores e pastas à serem backupeadas no arquivo "servidores.json" em formato json
 - Configurações gerais no arquivo "config.py", conforme comentários
 ### Exemplo de configuração de servidores com uma ou mais pastas de origem:
+```json
+{
 
+  "server1": {
+    "origembkp": ["/etc", "/usr/local"],
+    "destinobkp": "/dir/destino/bkp"
+  },
+
+   "server2": {
+    "origembkp": ["/etc/dhcp"],
+    "destinobkp": "/dir/destino/bkp"
+  }
+
+}
+```

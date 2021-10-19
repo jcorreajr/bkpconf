@@ -11,9 +11,14 @@ import subprocess
 import datetime
 import json
 from pathlib import Path
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 cont = 0
 now = datetime.datetime.now()
+errorotina = False
+
 
 def bkprsync(fhostbkp, forigembkp, fdestinobkp):
     global cont
@@ -31,16 +36,15 @@ def bkprsync(fhostbkp, forigembkp, fdestinobkp):
 
     # Montagem do comando de execução
     forigembkplista = 'root@' + fhostbkp + ':' + forigembkp
-    comandossh = 'ssh -p' + ' ' + portassh + ' ' + '-o PasswordAuthentication=no'
+    comandossh = 'ssh -p' + ' ' + portassh + ' ' + '-o PasswordAuthentication=no -o StrictHostKeyChecking=no'
     cmd = shlex.split('rsync -av --delete -e' + ' ' + '"' + comandossh + '"' + ' ' + forigembkplista + ' ' + fdestinobkp)
     if interativo in ['s', 'S']:
         print(f'...Debug (Comando):.. \n{cmd}')
 
-    # Faz um teste de conexão SSH com as variáveis do momento. Se OK, então executa sub-processo
     try:
         retorno = subprocess.run(cmd, capture_output=True)
     except:
-        retorno = 'Erro de execucao-host-errado'
+        retorno = 'Erro de execucao-host'
         pass
 
     dataexecucao = datetime.datetime.now().isoformat()
@@ -56,6 +60,9 @@ def bkprsync(fhostbkp, forigembkp, fdestinobkp):
 
 
 def sumariolog(fhostbkp, f2origembkp, fstatusbkp, fdataexecucao):
+    global errorotina
+    if fstatusbkp == 'ERRO':
+        errorotina = True
     if cont == 1:
         file = open(f'{logsumario}', 'w+')
     else:
@@ -100,6 +107,7 @@ def carregajson():
     return d1_dict
 
 def executa():
+    global errorotina
     # carrega variaveis
     dict_servers = carregajson()
 
@@ -133,6 +141,11 @@ def executa():
             if interativo in ['s', 'S']:
                 print('.. saindo ..')
 
+    # Se ocorreu erro na rotina, enviar email
+    if errorotina == True:
+        if interativo in ['s', 'S']:
+            print('.. Ocorreu erro em uma das rotinas de backup \nVerifique o log ..')
+        enviaremail()
 
 def fazertarfile(output_filename, source_dir):
     try:
@@ -160,6 +173,31 @@ def manterhistorico(fhostbkp):
                     if interativo in ['s', 'S']:
                         print(f"Error:{e.strerror}")
                     errolog(fhostbkp, e.strerror, datetime.datetime.now().isoformat())
+
+
+def enviaremail():
+    # Rotina para envio de emails
+    host = emailhost
+    port = emailport
+    server = smtplib.SMTP(host, port)
+
+    server.ehlo()
+
+    with open(logsumario, 'r') as f:
+        message = f.read()
+
+    message2 = 'Relatório de execução de backup por servidor \n\n'
+
+    message = message2 + message
+
+    msg = MIMEMultipart()
+    msg['From'] = emailfrom
+    msg['To'] = emailto
+    msg['Subject'] = 'Falha na execução de backup'
+
+    msg.attach(MIMEText(message, 'plain'))
+    server.sendmail(msg['From'], msg['To'], msg.as_string())
+    server.quit()
 
 
 executa()
